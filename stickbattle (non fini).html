@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, touch-action: manipulation">
+    <title>StickBattle - Menu Principal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        #gameContainer {
+            position: relative;
+            width: 1000px;
+            height: 600px;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+        canvas {
+            border: 3px solid #ff6b35;
+            display: block;
+            background: #1a1a2e;
+            width: 100%;
+            height: 100%;
+        }
+        #ui {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .player-info {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 2px solid rgba(255,255,255,0.3);
+            font-size: 11px;
+        }
+        .health-bar {
+            width: 100px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        #cooldownBar {
+            display: none;
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #cooldownFill {
+            height: 100%;
+            width: 100%;
+            background: #00BFFF;
+            border-radius: 3px;
+            transition: width 0.1s;
+        }
+        #levelInfo {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #ff6b35;
+            padding: 4px 10px;
+            border-radius: 12px;
+            z-index: 10;
+            text-align: center;
+            font-weight: bold;
+            border: 2px solid #ff6b35;
+            pointer-events: none;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        #currentWeaponDisplay {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            z-index: 10;
+            text-align: center;
+            font-size: 22px;
+            border: 2px solid #ff6b35;
+            pointer-events: none;
+        }
+        #victoryScreen, #levelSelect, #shopScreen, #mainMenu {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #ff6b35;
+            min-width: 260px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #mainMenu {
+            display: block;
+            min-width: 320px;
+            background: rgba(0,0,0,0.9);
+            border: 3px solid #ff6b35;
+        }
+        #mainMenu h1 {
+            font-size: 28px;
+            color: #ff6b35;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255,107,53,0.5);
+        }
+        #mainMenu .menu-subtitle {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        .menu-btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 6px;
+            transition: all 0.3s;
+            display: block;
+            width: 100%;
+            touch-action: manipulation;
+            font-weight: bold;
+        }
+        .menu-btn:active { background: #e55a2b; transform: scale(0.98); }
+        .menu-btn.shop-btn { background: #FFD700; color: #1a1a2e; border-color: #FFD700; }
+        .menu-btn.multi-btn { background: #00BFFF; color: #1a1a2e; border-color: #00BFFF; }
+        .victory-btn {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 4px;
+            display: block;
+            width: 100%;
+            touch-action: manipulation;
+        }
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+        .level-card {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 10px;
+            touch-action: manipulation;
+        }
+        .level-card.completed { border-color: #4CAF50; background: rgba(76,175,80,0.2); }
+        .level-card.current { border-color: #ff6b35; background: rgba(255,107,53,0.3); }
+
+        #mobileControls, #mobileControlsP2 {
+            display: none;
+            position: absolute;
+            bottom: 5px;
+            z-index: 20;
+            pointer-events: none;
+        }
+        #mobileControls { left: 5px; }
+        #mobileControlsP2 { right: 5px; }
+        .mobile-btn {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.4);
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            touch-action: manipulation;
+        }
+        .mobile-btn:active { background: rgba(255,107,53,0.8); border-color: #ff6b35; transform: scale(0.9); }
+        #btnLeft { bottom: 8px; left: 5px; }
+        #btnRight { bottom: 8px; left: 50px; }
+        #btnJump { bottom: 55px; left: 5px; }
+        #btnSword { bottom: 55px; left: 100px; background: rgba(255,215,0,0.4); border-color: #FFD700; }
+        #btnDodge { bottom: 55px; left: 145px; background: rgba(0,191,255,0.4); border-color: #00BFFF; }
+        #btnShoot { bottom: 25px; right: 5px; width: 55px; height: 55px; font-size: 22px; background: rgba(255,107,53,0.4); border-color: #ff6b35; }
+        
+        #btnLeft2 { bottom: 8px; right: 50px; }
+        #btnRight2 { bottom: 8px; right: 5px; }
+        #btnJump2 { bottom: 55px; right: 5px; }
+        #btnSword2 { bottom: 55px; right: 145px; background: rgba(255,215,0,0.4); border-color: #FFD700; }
+        #btnDodge2 { bottom: 55px; right: 100px; background: rgba(0,191,255,0.4); border-color: #00BFFF; }
+        #btnShoot2 { bottom: 25px; left: 5px; width: 55px; height: 55px; font-size: 22px; background: rgba(33,150,243,0.4); border-color: #2196F3; }
+        
+        #btnPause { top: 5px; right: 5px; width: 30px; height: 30px; font-size: 14px; display: none; }
+
+        @media (max-width: 768px) {
+            #mobileControls { display: block; }
+            #btnPause { display: flex; }
+            #currentWeaponDisplay { bottom: 90px; right: 8px; font-size: 18px; padding: 6px; }
+            .player-info { font-size: 9px; padding: 3px 6px; }
+            .health-bar { width: 70px; height: 6px; }
+            #levelInfo { font-size: 9px; padding: 3px 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+        
+        <div id="ui">
+            <div class="player-info" id="p1Info">
+                <div>🎮 <span id="p1Name">VOUS</span></div>
+                <div class="health-bar"><div class="health-fill" id="p1Health" style="width:100%;background:#4CAF50;"></div></div>
+            </div>
+            <div class="player-info" id="p2Info">
+                <div><span id="p2Label">🤖 ENNEMI</span></div>
+                <div class="health-bar"><div class="health-fill" id="p2Health" style="width:100%;background:#f44336;"></div></div>
+                <div style="font-size:8px;margin-top:1px;" id="iaInfo">IA <span id="iaLevel">1</span></div>
+            </div>
+        </div>
+        
+        <div id="cooldownBar"><div id="cooldownFill"></div></div>
+        <div id="levelInfo">🏆 <span id="levelName">1</span>/15 - <span id="levelTitle">Forêt Paisible</span></div>
+        <div id="currentWeaponDisplay">🔫</div>
+        
+        <div id="mobileControls">
+            <div class="mobile-btn" id="btnLeft">⬅️</div>
+            <div class="mobile-btn" id="btnRight">➡️</div>
+            <div class="mobile-btn" id="btnJump">⬆️</div>
+            <div class="mobile-btn" id="btnSword">⚔️</div>
+            <div class="mobile-btn" id="btnDodge">🔄</div>
+            <div class="mobile-btn" id="btnShoot">💥</div>
+        </div>
+        
+        <div id="mobileControlsP2">
+            <div class="mobile-btn" id="btnLeft2">⬅️</div>
+            <div class="mobile-btn" id="btnRight2">➡️</div>
+            <div class="mobile-btn" id="btnJump2">⬆️</div>
+            <div class="mobile-btn" id="btnSword2">⚔️</div>
+            <div class="mobile-btn" id="btnDodge2">🔄</div>
+            <div class="mobile-btn" id="btnShoot2">💥</div>
+        </div>
+        <div class="mobile-btn" id="btnPause">⏸</div>
+        
+        <div id="mainMenu">
+            <h1>⚔️ STICKBATTLE</h1>
+            <p class="menu-subtitle">Combat de Stickmen - 15 Niveaux</p>
+            <button class="menu-btn" onclick="startSoloGame()">🎮 COMMENCER À COMBATTRE</button>
+            <button class="menu-btn shop-btn" onclick="openShop()">🛒 BOUTIQUE</button>
+            <button class="menu-btn multi-btn" onclick="startMultiplayer()">👥 MODE MULTIJOUEUR LOCAL</button>
+            <p style="font-size:10px;color:#aaa;margin-top:10px;">
+                PC : Joueur 1 = Flèches+E/Shift/Souris | Joueur 2 = 1/3/4 + Clic droit<br>
+                Mobile : Joueur 1 = Boutons gauche | Joueur 2 = Boutons droite
+            </p>
+        </div>
+        
+        <div id="shopScreen">
+            <h2>🛒 BOUTIQUE</h2>
+            <p style="color:#aaa;margin:10px 0;">🪙 Pièces : <span id="coinCount">0</span></p>
+            <p style="color:#FFD700;">Bientôt disponible !</p>
+            <p style="font-size:11px;color:#aaa;">Skins d'épée, couleurs de stickman...</p>
+            <button class="victory-btn" onclick="closeShop()">❌ RETOUR AU MENU</button>
+        </div>
+        
+        <div id="victoryScreen">
+            <h2 id="victoryTitle">🎉 Victoire !</h2>
+            <p id="victoryMessage"></p>
+            <p id="coinsEarned" style="color:#FFD700;"></p>
+            <button class="victory-btn" onclick="nextLevel()">➡️ Niveau Suivant</button>
+            <button class="victory-btn" onclick="restartLevel()">🔄 Recommencer</button>
+            <button class="victory-btn" onclick="showLevelSelect()">🗺️ Niveaux</button>
+            <button class="victory-btn" onclick="backToMenu()" style="background:#555;">🏠 Menu Principal</button>
+        </div>
+        
+        <div id="levelSelect">
+            <h2>🗺️ Niveaux (Pause)</h2>
+            <div class="level-grid" id="levelGrid"></div>
+            <button class="victory-btn" onclick="hideLevelSelect()">▶️ Reprendre</button>
+            <button class="victory-btn" onclick="backToMenu()" style="background:#555;">🏠 Menu Principal</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const WIDTH = 1000;
+        const HEIGHT = 600;
+        const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || window.innerWidth < 768;
+        
+        let currentLevel = 0, completedLevels = [], coins = 0;
+        let player, player2, enemy, projectiles, platforms;
+        let keys = {}, currentWeapon = 'pistol', aiTimer = 0;
+        let gameRunning = false, gamePaused = false, gameMode = 'menu';
+        let mouseX = 500, mouseY = 300;
+        let playerSwordCD = 0, playerSwordSwing = 0, player2SwordCD = 0, player2SwordSwing = 0, enemySwordCD = 0, enemySwordSwing = 0;
+        let playerDodgeCD = 0, playerDodgeTimer = 0, playerInvincible = 0;
+        let player2DodgeCD = 0, player2DodgeTimer = 0, player2Invincible = 0;
+        const SWORD_DAMAGE = 15, DODGE_COOLDOWN = 90, DODGE_DURATION = 12, DODGE_SPEED = 18;
+        
+        const levels = [
+            { name:"Forêt Paisible",bg:"#87CEEB",ground:"#228B22",platforms:[{x:300,y:330,w:150,h:15},{x:600,y:330,w:150,h:15}],pStart:{x:200,y:500},eStart:{x:800,y:500},p2Start:{x:800,y:500},gravity:0.8,difficulty:1,eHealth:80,weapon:'pistol',wName:'🔫 Pistolet',iaSpeed:2,iaPrec:0.3,iaRate:80,iaDmg:15 },
+            { name:"Ville Abandonnée",bg:"#696969",ground:"#555555",platforms:[{x:150,y:350,w:120,h:15},{x:500,y:350,w:120,h:15},{x:750,y:350,w:120,h:15}],pStart:{x:150,y:500},eStart:{x:850,y:500},p2Start:{x:850,y:500},gravity:0.8,difficulty:1,eHealth:100,weapon:'pistol',wName:'🔫 Pistolet',iaSpeed:2.5,iaPrec:0.35,iaRate:75,iaDmg:18 },
+            { name:"Station Spatiale",bg:"#000033",ground:"#444466",platforms:[{x:200,y:300,w:100,h:15},{x:500,y:300,w:100,h:15},{x:350,y:180,w:150,h:15}],pStart:{x:300,y:500},eStart:{x:700,y:500},p2Start:{x:700,y:500},gravity:0.5,difficulty:2,eHealth:120,weapon:'shotgun',wName:'💥 Fusil',iaSpeed:3,iaPrec:0.4,iaRate:70,iaDmg:20 },
+            { name:"Volcan Infernal",bg:"#FF4500",ground:"#8B0000",platforms:[{x:200,y:330,w:150,h:15},{x:650,y:330,w:150,h:15},{x:400,y:200,w:200,h:15}],pStart:{x:250,y:500},eStart:{x:750,y:500},p2Start:{x:750,y:500},gravity:0.8,difficulty:2,eHealth:125,weapon:'shotgun',wName:'💥 Fusil',iaSpeed:3.1,iaPrec:0.42,iaRate:68,iaDmg:21 },
+            { name:"Forteresse Noire",bg:"#1a1a2e",ground:"#2F1F0E",platforms:[{x:100,y:350,w:200,h:15},{x:700,y:350,w:200,h:15},{x:400,y:220,w:200,h:15}],pStart:{x:200,y:500},eStart:{x:800,y:500},p2Start:{x:800,y:500},gravity:0.7,difficulty:3,eHealth:140,weapon:'sniper',wName:'🎯 Sniper',iaSpeed:3.3,iaPrec:0.47,iaRate:62,iaDmg:28 },
+            { name:"Île Tropicale",bg:"#00CED1",ground:"#F4A460",platforms:[{x:100,y:380,w:100,h:15},{x:400,y:320,w:100,h:15},{x:700,y:380,w:100,h:15},{x:250,y:220,w:150,h:15}],pStart:{x:150,y:500},eStart:{x:850,y:500},p2Start:{x:850,y:500},gravity:0.8,difficulty:3,eHealth:150,weapon:'sniper',wName:'🎯 Sniper',iaSpeed:3.6,iaPrec:0.52,iaRate:57,iaDmg:33 },
+            { name:"Toundra Gelée",bg:"#B0E0E6",ground:"#F0F8FF",platforms:[{x:200,y:350,w:120,h:15},{x:500,y:350,w:120,h:15},{x:700,y:280,w:120,h:15},{x:350,y:180,w:200,h:15}],pStart:{x:200,y:500},eStart:{x:800,y:500},p2Start:{x:800,y:500},gravity:0.6,difficulty:4,eHealth:160,weapon:'rocket',wName:'🚀 Roquette',iaSpeed:3.8,iaPrec:0.57,iaRate:52,iaDmg:38 },
+            { name:"Désert Aride",bg:"#F4A460",ground:"#D2691E",platforms:[{x:150,y:330,w:150,h:15},{x:500,y:330,w:150,h:15},{x:750,y:250,w:150,h:15}],pStart:{x:150,y:500},eStart:{x:850,y:500},p2Start:{x:850,y:500},gravity:0.9,difficulty:4,eHealth:170,weapon:'rocket',wName:'🚀 Roquette',iaSpeed:4,iaPrec:0.62,iaRate:47,iaDmg:43 },
+            { name:"Base Sous-Marine",bg:"#000080",ground:"#4682B4",platforms:[{x:200,y:330,w:100,h:15},{x:500,y:330,w:100,h:15},{x:350,y:220,w:150,h:15},{x:650,y:220,w:100,h:15}],pStart:{x:250,y:500},eStart:{x:750,y:500},p2Start:{x:750,y:500},gravity:0.4,difficulty:5,eHealth:180,weapon:'pistol',wName:'🔫 Pistolet+',iaSpeed:4.3,iaPrec:0.67,iaRate:42,iaDmg:28 },
+            { name:"Zone Industrielle",bg:"#808080",ground:"#696969",platforms:[{x:100,y:330,w:120,h:15},{x:350,y:330,w:120,h:15},{x:600,y:330,w:120,h:15},{x:800,y:330,w:120,h:15}],pStart:{x:100,y:500},eStart:{x:900,y:500},p2Start:{x:900,y:500},gravity:0.8,difficulty:5,eHealth:195,weapon:'shotgun',wName:'💥 Super Fusil',iaSpeed:4.7,iaPrec:0.73,iaRate:37,iaDmg:34 },
+            { name:"Dimension Parallèle",bg:"#4B0082",ground:"#8B008B",platforms:[{x:150,y:280,w:120,h:15},{x:450,y:330,w:120,h:15},{x:700,y:280,w:120,h:15},{x:300,y:160,w:200,h:15}],pStart:{x:200,y:500},eStart:{x:800,y:500},p2Start:{x:800,y:500},gravity:0.3,difficulty:6,eHealth:215,weapon:'sniper',wName:'🎯 Sniper+',iaSpeed:4.9,iaPrec:0.78,iaRate:32,iaDmg:48 },
+            { name:"Cirque Infernal",bg:"#FF1493",ground:"#C71585",platforms:[{x:100,y:380,w:150,h:15},{x:500,y:380,w:150,h:15},{x:300,y:250,w:150,h:15},{x:650,y:250,w:150,h:15}],pStart:{x:150,y:500},eStart:{x:850,y:500},p2Start:{x:850,y:500},gravity:0.85,difficulty:6,eHealth:235,weapon:'rocket',wName:'🚀 Roquette+',iaSpeed:5.1,iaPrec:0.83,iaRate:27,iaDmg:53 },
+            { name:"Abysses Sombres",bg:"#000000",ground:"#1a1a1a",platforms:[{x:200,y:330,w:100,h:15},{x:500,y:280,w:100,h:15},{x:700,y:330,w:100,h:15},{x:350,y:180,w:150,h:15}],pStart:{x:250,y:500},eStart:{x:750,y:500},p2Start:{x:750,y:500},gravity:0.7,difficulty:7,eHealth:255,weapon:'pistol',wName:'🔫 Pistolet++',iaSpeed:5.4,iaPrec:0.88,iaRate:22,iaDmg:44 },
+            { name:"Tour Céleste",bg:"#87CEEB",ground:"#FFFFFF",platforms:[{x:100,y:440,w:120,h:15},{x:300,y:330,w:120,h:15},{x:500,y:440,w:120,h:15},{x:700,y:330,w:120,h:15},{x:400,y:220,w:150,h:15}],pStart:{x:150,y:500},eStart:{x:850,y:500},p2Start:{x:850,y:500},gravity:0.8,difficulty:7,eHealth:275,weapon:'shotgun',wName:'💥 Fusil Divin',iaSpeed:5.7,iaPrec:0.91,iaRate:19,iaDmg:49 },
+            { name:"Arène des Champions",bg:"#FFD700",ground:"#DAA520",platforms:[{x:200,y:330,w:150,h:15},{x:600,y:330,w:150,h:15},{x:400,y:220,w:200,h:15},{x:100,y:440,w:100,h:15},{x:800,y:440,w:100,h:15}],pStart:{x:200,y:500},eStart:{x:800,y:500},p2Start:{x:800,y:500},gravity:0.75,difficulty:8,eHealth:295,weapon:'sniper',wName:'🎯 Sniper Ultime',iaSpeed:5.9,iaPrec:0.94,iaRate:16,iaDmg:63 }
+        ];
+        
+        function showHideGameUI(show) {
+            document.getElementById('ui').style.display = show ? 'flex' : 'none';
+            document.getElementById('levelInfo').style.display = show ? 'block' : 'none';
+            document.getElementById('currentWeaponDisplay').style.display = show ? 'block' : 'none';
+            document.getElementById('cooldownBar').style.display = show ? 'block' : 'none';
+            document.getElementById('mobileControls').style.display = (show && isMobile) ? 'block' : 'none';
+            document.getElementById('mobileControlsP2').style.display = (show && isMobile && gameMode === 'multi') ? 'block' : 'none';
+            document.getElementById('btnPause').style.display = (show && isMobile) ? 'flex' : 'none';
+            if (!show) {
+                document.getElementById('victoryScreen').style.display = 'none';
+                document.getElementById('levelSelect').style.display = 'none';
+            }
+        }
+        
+        function startSoloGame() {
+            gameMode = 'solo';
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('shopScreen').style.display = 'none';
+            document.getElementById('p2Label').textContent = '🤖 ENNEMI';
+            document.getElementById('iaInfo').style.display = 'block';
+            document.getElementById('p1Name').textContent = isMobile ? 'VOUS' : 'VOUS';
+            document.getElementById('mobileControlsP2').style.display = 'none';
+            showHideGameUI(true);
+            initLevel(0);
+        }
+        
+        function startMultiplayer() {
+            gameMode = 'multi';
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('shopScreen').style.display = 'none';
+            document.getElementById('p2Label').textContent = '🎮 JOUEUR 2';
+            document.getElementById('iaInfo').style.display = 'none';
+            document.getElementById('p1Name').textContent = 'JOUEUR 1';
+            document.getElementById('p2Info').querySelector('.health-fill').style.background = '#2196F3';
+            if (isMobile) document.getElementById('mobileControlsP2').style.display = 'block';
+            showHideGameUI(true);
+            initMultiplayerLevel(0);
+        }
+        
+        function openShop() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('shopScreen').style.display = 'block';
+            document.getElementById('coinCount').textContent = coins;
+        }
+        
+        function closeShop() {
+            document.getElementById('shopScreen').style.display = 'none';
+            document.getElementById('mainMenu').style.display = 'block';
+        }
+        
+        function backToMenu() {
+            gameRunning = false; gamePaused = false; gameMode = 'menu';
+            showHideGameUI(false);
+            document.getElementById('mainMenu').style.display = 'block';
+            document.getElementById('p2Info').querySelector('.health-fill').style.background = '#f44336';
+            document.getElementById('mobileControlsP2').style.display = 'none';
+            projectiles = []; player = null; player2 = null; enemy = null;
+        }
+        
+        function initLevel(index) {
+            currentLevel = index;
+            const lvl = levels[index];
+            currentWeapon = lvl.weapon;
+            document.getElementById('currentWeaponDisplay').textContent = lvl.wName;
+            document.getElementById('levelName').textContent = index + 1;
+            document.getElementById('levelTitle').textContent = lvl.name;
+            document.getElementById('iaLevel').textContent = lvl.difficulty;
+            
+            platforms = [{ x: 0, y: HEIGHT - 40, width: WIDTH, height: 40, color: lvl.ground }];
+            lvl.platforms.forEach(p => { platforms.push({ x: p.x, y: p.y, width: p.w, height: p.h, color: '#8B4513' }); });
+            
+            player = { x: lvl.pStart.x, y: lvl.pStart.y, health: 100, maxHealth: 100, vx: 0, vy: 0, grounded: false, aimAngle: 0, facing: 1, shootCD: 0, invuln: 0, color: '#4CAF50' };
+            player2 = null;
+            enemy = { x: lvl.eStart.x, y: lvl.eStart.y, health: lvl.eHealth, maxHealth: lvl.eHealth, vx: 0, vy: 0, grounded: false, aimAngle: Math.PI, facing: -1, shootCD: 0, invuln: 0, color: '#f44336' };
+            
+            projectiles = []; gameRunning = true; gamePaused = false; aiTimer = 0;
+            playerSwordCD = 0; playerSwordSwing = 0; enemySwordCD = 0; enemySwordSwing = 0;
+            playerDodgeCD = 0; playerDodgeTimer = 0; playerInvincible = 0;
+            player2SwordCD = 0; player2SwordSwing = 0; player2DodgeCD = 0; player2DodgeTimer = 0; player2Invincible = 0;
+            
+            document.getElementById('victoryScreen').style.display = 'none';
+            document.getElementById('levelSelect').style.display = 'none';
+            updateUI();
+        }
+        
+        function initMultiplayerLevel(index) {
+            currentLevel = index;
+            const lvl = levels[index];
+            currentWeapon = lvl.weapon;
+            document.getElementById('currentWeaponDisplay').textContent = lvl.wName;
+            document.getElementById('levelName').textContent = index + 1;
+            document.getElementById('levelTitle').textContent = lvl.name;
+            document.getElementById('iaLevel').textContent = 'MULTI';
+            
+            platforms = [{ x: 0, y: HEIGHT - 40, width: WIDTH, height: 40, color: lvl.ground }];
+            lvl.platforms.forEach(p => { platforms.push({ x: p.x, y: p.y, width: p.w, height: p.h, color: '#8B4513' }); });
+            
+            player = { x: lvl.pStart.x, y: lvl.pStart.y, health: 100, maxHealth: 100, vx: 0, vy: 0, grounded: false, aimAngle: 0, facing: 1, shootCD: 0, invuln: 0, color: '#4CAF50' };
+            player2 = { x: lvl.p2Start.x, y: lvl.p2Start.y, health: 100, maxHealth: 100, vx: 0, vy: 0, grounded: false, aimAngle: Math.PI, facing: -1, shootCD: 0, invuln: 0, color: '#2196F3' };
+            enemy = null;
+            
+            projectiles = []; gameRunning = true; gamePaused = false; aiTimer = 0;
+            playerSwordCD = 0; playerSwordSwing = 0; player2SwordCD = 0; player2SwordSwing = 0;
+            playerDodgeCD = 0; playerDodgeTimer = 0; playerInvincible = 0;
+            player2DodgeCD = 0; player2DodgeTimer = 0; player2Invincible = 0;
+            
+            document.getElementById('victoryScreen').style.display = 'none';
+            document.getElementById('levelSelect').style.display = 'none';
+            updateUI();
+        }
+        
+        document.addEventListener('keydown', e => {
+            if (gameMode === 'menu' || !gameRunning) return;
+            if (e.key === 'Escape') { e.preventDefault(); gamePaused = !gamePaused; if (gamePaused) showLevelSelect(); else document.getElementById('levelSelect').style.display = 'none'; return; }
+            if (gamePaused) return;
+            if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','z','q','s','d','e','E','Shift','Control','1','2','3','4'].includes(e.key)) e.preventDefault();
+            keys[e.key] = true;
+            if ((e.key === 'e' || e.key === 'E') && playerSwordCD <= 0 && player) swordAttack(player, 'player1');
+            if (e.key === 'Shift' && playerDodgeCD <= 0 && player && player.grounded) { playerDodgeTimer = DODGE_DURATION; playerDodgeCD = DODGE_COOLDOWN; playerInvincible = DODGE_DURATION; }
+            if (gameMode === 'multi' && player2) {
+                if (e.key === '1' && player2SwordCD <= 0) swordAttack(player2, 'player2');
+                if (e.key === '2' && player2DodgeCD <= 0 && player2.grounded) { player2DodgeTimer = DODGE_DURATION; player2DodgeCD = DODGE_COOLDOWN; player2Invincible = DODGE_DURATION; }
+            }
+        });
+        document.addEventListener('keyup', e => { keys[e.key] = false; });
+        
+        canvas.addEventListener('mousemove', e => {
+            if (gamePaused || !gameRunning || gameMode === 'menu' || isMobile) return;
+            const rect = canvas.getBoundingClientRect();
+            mouseX = (e.clientX - rect.left) * (WIDTH / rect.width);
+            mouseY = (e.clientY - rect.top) * (HEIGHT / rect.height);
+            if (player) player.aimAngle = Math.atan2(mouseY - (player.y - 30), mouseX - player.x);
+            if (gameMode === 'multi' && player2) player2.aimAngle = Math.atan2(mouseY - (player2.y - 30), mouseX - player2.x);
+        });
+        canvas.addEventListener('click', e => {
+            if (gamePaused || !gameRunning || gameMode === 'menu' || isMobile) return;
+            if (player && player.shootCD <= 0) shoot(player, 'player1');
+        });
+        canvas.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            if (gamePaused || !gameRunning || gameMode !== 'multi' || isMobile) return;
+            if (player2 && player2.shootCD <= 0) shoot(player2, 'player2');
+        });
+        
+        if (isMobile) {
+            // Joueur 1 (gauche)
+            document.getElementById('btnLeft').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); keys['ArrowLeft']=true; });
+            document.getElementById('btnLeft').addEventListener('touchend', e => { keys['ArrowLeft']=false; });
+            document.getElementById('btnRight').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); keys['ArrowRight']=true; });
+            document.getElementById('btnRight').addEventListener('touchend', e => { keys['ArrowRight']=false; });
+            document.getElementById('btnJump').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); keys['ArrowUp']=true; keys[' ']=true; });
+            document.getElementById('btnJump').addEventListener('touchend', e => { keys['ArrowUp']=false; keys[' ']=false; });
+            document.getElementById('btnSword').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); if(playerSwordCD<=0&&player)swordAttack(player,'player1'); });
+            document.getElementById('btnDodge').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); if(playerDodgeCD<=0&&player&&player.grounded){playerDodgeTimer=DODGE_DURATION;playerDodgeCD=DODGE_COOLDOWN;playerInvincible=DODGE_DURATION;} });
+            document.getElementById('btnShoot').addEventListener('touchstart', e => { if(gamePaused||!gameRunning)return; e.preventDefault(); if(player&&player.shootCD<=0)shoot(player,'player1'); });
+            
+            // Joueur 2 (droite)
+            document.getElementById('btnLeft2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); keys['1']=true; });
+            document.getElementById('btnLeft2').addEventListener('touchend', e => { keys['1']=false; });
+            document.getElementById('btnRight2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); keys['3']=true; });
+            document.getElementById('btnRight2').addEventListener('touchend', e => { keys['3']=false; });
+            document.getElementById('btnJump2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); keys['4']=true; });
+            document.getElementById('btnJump2').addEventListener('touchend', e => { keys['4']=false; });
+            document.getElementById('btnSword2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); if(player2SwordCD<=0&&player2)swordAttack(player2,'player2'); });
+            document.getElementById('btnDodge2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); if(player2DodgeCD<=0&&player2&&player2.grounded){player2DodgeTimer=DODGE_DURATION;player2DodgeCD=DODGE_COOLDOWN;player2Invincible=DODGE_DURATION;} });
+            document.getElementById('btnShoot2').addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode!=='multi')return; e.preventDefault(); if(player2&&player2.shootCD<=0)shoot(player2,'player2'); });
+            
+            document.getElementById('btnPause').addEventListener('touchstart', e => { e.preventDefault(); if(gameRunning){gamePaused=!gamePaused; if(gamePaused)showLevelSelect(); else document.getElementById('levelSelect').style.display='none';} });
+            
+            canvas.addEventListener('touchmove', e => { if(gamePaused||!gameRunning||gameMode==='menu')return; e.preventDefault(); const rect=canvas.getBoundingClientRect(); mouseX=(e.touches[0].clientX-rect.left)*(WIDTH/rect.width); mouseY=(e.touches[0].clientY-rect.top)*(HEIGHT/rect.height); if(player)player.aimAngle=Math.atan2(mouseY-(player.y-30),mouseX-player.x); if(gameMode==='multi'&&player2)player2.aimAngle=Math.atan2(mouseY-(player2.y-30),mouseX-player2.x); });
+            canvas.addEventListener('touchstart', e => { if(gamePaused||!gameRunning||gameMode==='menu')return; e.preventDefault(); const rect=canvas.getBoundingClientRect(); mouseX=(e.touches[0].clientX-rect.left)*(WIDTH/rect.width); mouseY=(e.touches[0].clientY-rect.top)*(HEIGHT/rect.height); if(player)player.aimAngle=Math.atan2(mouseY-(player.y-30),mouseX-player.x); if(gameMode==='multi'&&player2)player2.aimAngle=Math.atan2(mouseY-(player2.y-30),mouseX-player2.x); });
+        }
+        
+        function swordAttack(attacker, owner) {
+            if (owner === 'player1') { playerSwordCD = 25; playerSwordSwing = 10; }
+            else if (owner === 'player2') { player2SwordCD = 25; player2SwordSwing = 10; }
+            else { enemySwordCD = 30; enemySwordSwing = 10; }
+            let target = (owner === 'player1') ? (gameMode === 'multi' ? player2 : enemy) : (owner === 'player2' ? player : player);
+            if (!target || target.invuln > 0) return;
+            if (gameMode === 'multi' && owner === 'player2' && playerInvincible > 0) return;
+            if (gameMode === 'multi' && owner === 'player1' && player2Invincible > 0) return;
+            if (Math.sqrt((target.x-attacker.x)**2+(target.y-30-(attacker.y-30))**2) < 60) {
+                target.health -= SWORD_DAMAGE; target.invuln = 12;
+                target.vx += attacker.facing * 6; target.vy -= 4;
+                if (target.health <= 0) { target.health = 0; gameOver(owner === 'player2' ? 'player2' : (owner === 'player1' ? 'player1' : 'enemy')); }
+            }
+        }
+        
+        function shoot(shooter, owner) {
+            if (shooter.shootCD > 0 || !gameRunning || gamePaused) return;
+            const weapons = { pistol: { speed: 15, damage: 25, cooldown: 20, type: 'bullet', spread: 0.1 }, shotgun: { speed: 12, damage: 15, cooldown: 40, type: 'shotgun', spread: 0.3 }, sniper: { speed: 25, damage: 75, cooldown: 60, type: 'sniper', spread: 0.05 }, rocket: { speed: 10, damage: 50, cooldown: 50, type: 'rocket', spread: 0.15 } };
+            const w = weapons[currentWeapon]; shooter.shootCD = w.cooldown;
+            if (w.type === 'shotgun') { for (let i = 0; i < 5; i++) createProj(shooter, shooter.aimAngle + (Math.random()-0.5)*w.spread, w, owner); }
+            else createProj(shooter, shooter.aimAngle + (Math.random()-0.5)*w.spread, w, owner);
+        }
+        
+        function createProj(shooter, angle, w, owner) {
+            projectiles.push({ x: shooter.x + Math.cos(angle) * 25 * shooter.facing, y: shooter.y - 30 + Math.sin(angle) * 25, vx: Math.cos(angle) * w.speed * shooter.facing, vy: Math.sin(angle) * w.speed, damage: w.damage, type: w.type, lifetime: 120, trail: [], owner: owner });
+        }
+        
+        function updatePlayer1() {
+            if (!player || !gameRunning || gamePaused) return;
+            const lvl = levels[currentLevel];
+            if (keys['ArrowLeft']||keys['q']||keys['Q']){player.vx=-5;player.facing=-1;}
+            else if(keys['ArrowRight']||keys['d']||keys['D']){player.vx=5;player.facing=1;}
+            else player.vx*=0.85;
+            if((keys['ArrowUp']||keys['z']||keys['Z']||keys['w']||keys['W']||keys[' '])&&player.grounded)player.vy=-12;
+            if (playerDodgeTimer > 0) { playerDodgeTimer--; player.vx = player.facing * DODGE_SPEED; }
+            player.vy+=lvl.gravity; player.x+=player.vx; player.y+=player.vy;
+            player.grounded=false;
+            platforms.forEach(p=>{if(player.x>p.x-15&&player.x<p.x+p.width+15&&player.y+30>=p.y&&player.y+30<=p.y+p.height+10&&player.vy>=0){player.y=p.y-30;player.vy=0;player.grounded=true;}});
+            if(player.x<15)player.x=15; if(player.x>WIDTH-15)player.x=WIDTH-15;
+            if(player.y>HEIGHT+100){player.health=0;gameOver('enemy');}
+            if(player.shootCD>0)player.shootCD--;
+            if(player.invuln>0)player.invuln--;
+            if(playerSwordCD>0)playerSwordCD--;
+            if(playerSwordSwing>0)playerSwordSwing--;
+            if(playerDodgeCD>0)playerDodgeCD--;
+            if(playerInvincible>0)playerInvincible--;
+        }
+        
+        function updatePlayer2() {
+            if (!player2 || !gameRunning || gamePaused) return;
+            const lvl = levels[currentLevel];
+            if (keys['1']) { player2.vx = -5; player2.facing = -1; }
+            else if (keys['3']) { player2.vx = 5; player2.facing = 1; }
+            else player2.vx *= 0.85;
+            if (keys['4'] && player2.grounded) player2.vy = -12;
+            if (player2DodgeTimer > 0) { player2DodgeTimer--; player2.vx = player2.facing * DODGE_SPEED; }
+            player2.vy+=lvl.gravity; player2.x+=player2.vx; player2.y+=player2.vy;
+            player2.grounded=false;
+            platforms.forEach(p=>{if(player2.x>p.x-15&&player2.x<p.x+p.width+15&&player2.y+30>=p.y&&player2.y+30<=p.y+p.height+10&&player2.vy>=0){player2.y=p.y-30;player2.vy=0;player2.grounded=true;}});
+            if(player2.x<15)player2.x=15; if(player2.x>WIDTH-15)player2.x=WIDTH-15;
+            if(player2.y>HEIGHT+100){player2.health=0;gameOver('player1');}
+            if(player2.shootCD>0)player2.shootCD--;
+            if(player2.invuln>0)player2.invuln--;
+            if(player2SwordCD>0)player2SwordCD--;
+            if(player2SwordSwing>0)player2SwordSwing--;
+            if(player2DodgeCD>0)player2DodgeCD--;
+            if(player2Invincible>0)player2Invincible--;
+        }
+        
+        function updateAI() {
+            if (!enemy || !gameRunning || gamePaused || !player || gameMode === 'multi') return;
+            aiTimer++;
+            const lvl = levels[currentLevel];
+            const dx = player.x - enemy.x, dy = player.y - enemy.y, dist = Math.sqrt(dx*dx+dy*dy);
+            if(dist>30){enemy.vx=Math.max(-lvl.iaSpeed,Math.min(lvl.iaSpeed,dx*0.08));enemy.facing=dx<0?-1:1;}
+            else enemy.vx*=0.9;
+            if(enemy.grounded&&Math.random()<0.02*lvl.difficulty)enemy.vy=-12;
+            enemy.aimAngle=Math.atan2(dy,dx);
+            if(dist<70&&enemySwordCD<=0&&Math.random()<0.2)swordAttack(enemy,'enemy');
+            if(aiTimer%lvl.iaRate===0&&enemy.shootCD<=0&&dist<900){
+                const aiW={pistol:{speed:15,damage:lvl.iaDmg,cooldown:25,type:'bullet',spread:0.15},shotgun:{speed:12,damage:lvl.iaDmg*0.7,cooldown:45,type:'shotgun',spread:0.35},sniper:{speed:25,damage:lvl.iaDmg,cooldown:70,type:'sniper',spread:0.08},rocket:{speed:10,damage:lvl.iaDmg*1.2,cooldown:60,type:'rocket',spread:0.2}};
+                const w=aiW[currentWeapon]; enemy.shootCD=w.cooldown;
+                if(w.type==='shotgun'){for(let i=0;i<5;i++)createProj(enemy,enemy.aimAngle+(Math.random()-0.5)*w.spread*(2-lvl.iaPrec),w,'enemy');}
+                else createProj(enemy,enemy.aimAngle+(Math.random()-0.5)*w.spread*(2-lvl.iaPrec),w,'enemy');
+            }
+            enemy.vy+=lvl.gravity; enemy.x+=enemy.vx; enemy.y+=enemy.vy;
+            enemy.grounded=false;
+            platforms.forEach(p=>{if(enemy.x>p.x-15&&enemy.x<p.x+p.width+15&&enemy.y+30>=p.y&&enemy.y+30<=p.y+p.height+10&&enemy.vy>=0){enemy.y=p.y-30;enemy.vy=0;enemy.grounded=true;}});
+            if(enemy.x<15)enemy.x=15; if(enemy.x>WIDTH-15)enemy.x=WIDTH-15;
+            if(enemy.shootCD>0)enemy.shootCD--;
+            if(enemy.invuln>0)enemy.invuln--;
+            if(enemySwordCD>0)enemySwordCD--;
+            if(enemySwordSwing>0)enemySwordSwing--;
+        }
+        
+        function updateProjectiles() {
+            if (gamePaused) return;
+            for(let i=projectiles.length-1;i>=0;i--){
+                const p=projectiles[i];
+                p.trail.push({x:p.x,y:p.y}); if(p.trail.length>8)p.trail.shift();
+                p.x+=p.vx; p.y+=p.vy; if(p.type==='rocket')p.vy+=0.3; p.lifetime--;
+                const checkHit = (target, owner) => {
+                    if (!target || target.invuln > 0) return false;
+                    if (owner === 'player1' && gameMode === 'multi' && player2Invincible > 0) return false;
+                    if (owner === 'player2' && playerInvincible > 0) return false;
+                    if (owner === 'enemy' && playerInvincible > 0) return false;
+                    if (Math.sqrt((target.x-p.x)**2+(target.y-30-p.y)**2) < 25) {
+                        target.health -= p.damage; target.invuln = 20;
+                        projectiles.splice(i, 1);
+                        if (target.health <= 0) { target.health = 0; gameOver(owner); }
+                        return true;
+                    }
+                    return false;
+                };
+                if (p.owner === 'player1') { if (checkHit(gameMode==='multi'?player2:enemy, 'player1')) continue; }
+                else if (p.owner === 'player2') { if (checkHit(player, 'player2')) continue; }
+                else if (p.owner === 'enemy') { if (checkHit(player, 'enemy')) continue; }
+                if(p.lifetime<=0||p.x<-50||p.x>WIDTH+50||p.y<-50||p.y>HEIGHT+50)projectiles.splice(i,1);
+            }
+        }
+        
+        function gameOver(winner) {
+            gameRunning = false; gamePaused = false;
+            document.getElementById('levelSelect').style.display = 'none';
+            const vs = document.getElementById('victoryScreen');
+            document.getElementById('coinsEarned').textContent = '';
+            if (gameMode === 'multi') {
+                document.getElementById('victoryTitle').textContent = winner === 'player1' ? '🎉 Joueur 1 gagne !' : '🎉 Joueur 2 gagne !';
+                document.getElementById('victoryMessage').textContent = 'Combat multijoueur terminé !';
+            } else {
+                if (winner === 'player1') {
+                    document.getElementById('victoryTitle').textContent = '🎉 Victoire !';
+                    document.getElementById('victoryMessage').textContent = 'Niveau ' + (currentLevel + 1) + ' terminé !';
+                    if (!completedLevels.includes(currentLevel)) { completedLevels.push(currentLevel); coins += 10; }
+                    if (completedLevels.length === 15) document.getElementById('victoryMessage').textContent = '🏆 FÉLICITATIONS ! Tous les niveaux terminés ! 🏆';
+                    document.getElementById('coinsEarned').textContent = '🪙 +10 pièces (Total: ' + coins + ')';
+                } else {
+                    document.getElementById('victoryTitle').textContent = '💀 Défaite...';
+                    document.getElementById('victoryMessage').textContent = 'L\'ennemi était trop fort...';
+                }
+            }
+            vs.style.display = 'block';
+        }
+        
+        function updateUI() {
+            if(player)document.getElementById('p1Health').style.width=(player.health/player.maxHealth*100)+'%';
+            if(gameMode==='multi'&&player2)document.getElementById('p2Health').style.width=(player2.health/player2.maxHealth*100)+'%';
+            else if(enemy)document.getElementById('p2Health').style.width=(enemy.health/enemy.maxHealth*100)+'%';
+            document.getElementById('cooldownFill').style.width=(playerDodgeCD>0?((DODGE_COOLDOWN-playerDodgeCD)/DODGE_COOLDOWN*100):100)+'%';
+        }
+        
+        function drawStickman(p, swordSwing=0, isDodging=false) {
+            if(!p)return;
+            ctx.save(); ctx.translate(p.x,p.y);
+            if((p===player&&playerInvincible>0&&Math.floor(playerInvincible/3)%2===0)||(p===player2&&player2Invincible>0&&Math.floor(player2Invincible/3)%2===0))ctx.globalAlpha=0.5;
+            else if(p.invuln>0&&Math.floor(p.invuln/4)%2===0)ctx.globalAlpha=0.5;
+            ctx.strokeStyle=p.color; ctx.lineWidth=3; ctx.lineCap='round';
+            ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-8,25);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(8,25);ctx.stroke();
+            const dodgeOffset=isDodging?-15*p.facing:0;
+            ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(dodgeOffset,-25);ctx.stroke();
+            ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(-12,-5);ctx.stroke();
+            let ax=Math.cos(p.aimAngle)*18*p.facing, ay=Math.sin(p.aimAngle)*18-10;
+            if(swordSwing>0){const sa=(swordSwing/10)*Math.PI*0.6; ax=Math.cos(p.aimAngle+sa)*22*p.facing; ay=Math.sin(p.aimAngle+sa)*22-10;}
+            ctx.beginPath();ctx.moveTo(0,-15);ctx.lineTo(ax,ay);ctx.stroke();
+            ctx.save();ctx.translate(ax,ay);
+            if(swordSwing>0){
+                ctx.rotate(p.aimAngle*p.facing+(swordSwing/10)*Math.PI*0.6);
+                ctx.fillStyle='#E8E8E8'; ctx.beginPath(); ctx.moveTo(0,-25);ctx.lineTo(2,-25);ctx.lineTo(2.5,-2);ctx.lineTo(0,0);ctx.lineTo(-2.5,-2);ctx.lineTo(-2,-25);ctx.fill();
+                ctx.strokeStyle='#999';ctx.lineWidth=1;ctx.stroke();
+                ctx.strokeStyle='#FFF';ctx.beginPath();ctx.moveTo(0,-22);ctx.lineTo(0,-3);ctx.stroke();
+                ctx.fillStyle='#FFD700';ctx.fillRect(-6,-2,12,3);ctx.strokeStyle='#B8860B';ctx.strokeRect(-6,-2,12,3);
+                ctx.fillStyle='#8B4513';ctx.fillRect(-2.5,1,5,8);ctx.strokeStyle='#5C2E00';ctx.strokeRect(-2.5,1,5,8);
+                ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(0,9,3.5,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#B8860B';ctx.stroke();
+            }else{ctx.rotate(p.aimAngle*p.facing);ctx.fillStyle='#333';ctx.fillRect(0,-2,12,4);ctx.fillStyle='#555';ctx.fillRect(10,-3,6,6);}
+            ctx.restore();
+            ctx.beginPath();ctx.arc(dodgeOffset,-35,10,0,Math.PI*2);ctx.stroke();
+            ctx.fillStyle='white';ctx.beginPath();ctx.arc(dodgeOffset+3*p.facing,-37,3,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle='black';ctx.beginPath();ctx.arc(dodgeOffset+4*p.facing,-37,1.5,0,Math.PI*2);ctx.fill();
+            ctx.restore();
+        }
+        
+        function drawProjectile(p) {
+            if(!p)return;
+            ctx.save();
+            if(p.trail.length>1){ctx.beginPath();ctx.moveTo(p.trail[0].x,p.trail[0].y);for(let i=1;i<p.trail.length;i++)ctx.lineTo(p.trail[i].x,p.trail[i].y);ctx.strokeStyle=p.owner==='player1'?'rgba(0,255,0,0.3)':(p.owner==='player2'?'rgba(33,150,243,0.3)':'rgba(255,0,0,0.3)');ctx.lineWidth=2;ctx.stroke();}
+            if(p.type==='bullet'){ctx.fillStyle=p.owner==='player1'?'#4CAF50':(p.owner==='player2'?'#2196F3':'#f44336');ctx.shadowBlur=8;ctx.shadowColor=ctx.fillStyle;ctx.fillRect(p.x-3,p.y-3,6,6);}
+            else if(p.type==='shotgun'){ctx.fillStyle='#FF6347';ctx.fillRect(p.x-2,p.y-2,4,4);}
+            else if(p.type==='sniper'){ctx.fillStyle='#00FF00';ctx.shadowBlur=12;ctx.shadowColor='#00FF00';ctx.fillRect(p.x-4,p.y-1.5,8,3);}
+            else if(p.type==='rocket'){ctx.fillStyle='#FF4500';ctx.shadowBlur=10;ctx.shadowColor='#FF4500';ctx.beginPath();ctx.arc(p.x,p.y,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}
+            ctx.restore();
+        }
+        
+        function draw() {
+            if(gameMode==='menu'){ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,WIDTH,HEIGHT);return;}
+            const lvl=levels[currentLevel];
+            ctx.fillStyle=lvl.bg; ctx.fillRect(0,0,WIDTH,HEIGHT);
+            platforms.forEach(p=>{ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.width,p.height);ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(p.x,p.y,p.width,3);});
+            projectiles.forEach(p=>drawProjectile(p));
+            drawStickman(player,playerSwordSwing,playerDodgeTimer>0);
+            if(gameMode==='multi')drawStickman(player2,player2SwordSwing,player2DodgeTimer>0);
+            else drawStickman(enemy,enemySwordSwing);
+            if(gamePaused){ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,0,WIDTH,HEIGHT);ctx.fillStyle='white';ctx.font='40px Arial';ctx.textAlign='center';ctx.fillText('⏸️ PAUSE',WIDTH/2,HEIGHT/2);ctx.textAlign='start';}
+        }
+        
+        function gameLoop() {
+            if(player&&gameRunning){updatePlayer1();if(gameMode==='multi')updatePlayer2();else updateAI();updateProjectiles();updateUI();}
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        window.nextLevel = () => { if(currentLevel<14)initLevel(currentLevel+1); else backToMenu(); };
+        window.restartLevel = () => { if(gameMode==='multi')initMultiplayerLevel(currentLevel); else initLevel(currentLevel); };
+        window.showLevelSelect = () => {
+            const ls=document.getElementById('levelSelect'); ls.style.display='block';
+            const grid=document.getElementById('levelGrid'); grid.innerHTML='';
+            levels.forEach((l,i)=>{const card=document.createElement('div');card.className='level-card';if(completedLevels.includes(i))card.classList.add('completed');if(i===currentLevel)card.classList.add('current');card.innerHTML='<strong>'+(completedLevels.includes(i)?'✅ ':'')+l.name+'</strong><br><small>Niv.'+(i+1)+' - '+l.wName+'</small>';card.onclick=()=>{initLevel(i);ls.style.display='none';gamePaused=false;};grid.appendChild(card);});
+        };
+        window.hideLevelSelect = () => { document.getElementById('levelSelect').style.display='none'; gamePaused=false; };
+        
+        window.startSoloGame = startSoloGame;
+        window.startMultiplayer = startMultiplayer;
+        window.openShop = openShop;
+        window.closeShop = closeShop;
+        window.backToMenu = backToMenu;
+        
+        showHideGameUI(false);
+        gameLoop();
+    </script>
+</body>
+</html>
